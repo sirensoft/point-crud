@@ -4,7 +4,7 @@ var router = express.Router();
 var Point = require('../models/point')
 var mPoint = new Point();
 
-/* GET home page. */
+
 router.get('/point', async function(req, res) {
     let point = await mPoint.findAll();
     res.json(point)
