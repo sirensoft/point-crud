@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset=utf-8 />
+    <title>GIS Example </title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <link rel='stylesheet' href='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.2.2/leaflet.draw.css' />
+    <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.2.2/leaflet.draw.js'></script>
+
+    <div id='map'></div>
+    <script>
+        L.mapbox.accessToken = 'pk.eyJ1IjoidGVobm5uIiwiYSI6ImNpZzF4bHV4NDE0dTZ1M200YWxweHR0ZzcifQ.lpRRelYpT0ucv1NN08KUWQ';
+        var map = L.mapbox.map('map', 'mapbox.streets').setView([16, 100], 6);
+        var pointFeature = L.mapbox.featureLayer();
+
+        var featureGroup = L.featureGroup().addTo(map);
+        pointFeature.loadURL('/layer/point').on('ready', function(e) {
+            e.target.eachLayer(function(layer) {
+                var id = layer.feature.properties.id;
+                var note = layer.feature.properties.note;
+                var lat = layer.feature.geometry.coordinates[1];
+                var lon = layer.feature.geometry.coordinates[0];
+                var btnRemove = `<p><a href=/layer/point/delete/${id} onclick=\"return confirm('Are you sure?')\">ลบ</a></p>`;
+                L.marker([lat, lon], {
+                    'draggable': true
+                }).bindPopup(note + btnRemove).on('dragend', function(e) {
+                    $.post('/layer/point/update/' + id, {
+                            lat: e.target._latlng.lat,
+                            lon: e.target._latlng.lng,
+                            note: note
+                        })
+                        .done(function(data) {
+                            alert('id ' + data + ' is updated.');
+                        });
+                }).addTo(featureGroup)
+            });
+        })
+
+        var drawControl = new L.Control.Draw({
+            draw: {
+                position: 'topleft',
+                polygon: false,
+                polyline: false,
+                rectangle: false,
+                circle: false
+
+            },
+            edit: false
+        }).addTo(map);
+
+        map.on('draw:created', function(e) {
+            var newData = e.layer.toGeoJSON();
+            var lat = newData.geometry.coordinates[1];
+            var lon = newData.geometry.coordinates[0];
+
+
+            var note = prompt("Please enter your name", "Harry Potter");
+            if (note) {
+                L.marker([lat, lon], {
+                    'draggable': true
+                }).bindPopup(note).addTo(featureGroup)
+
+                $.post('/layer/point/create/', {
+                        lat: lat,
+                        lon: lon,
+                        note: note
+                    })
+                    .done(function(data) {
+                        //alert(data);
+
+                    });
+            }
+
+        }); //end created
+    </script>
+
+</body>
+
+</html>
